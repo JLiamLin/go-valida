@@ -5,11 +5,18 @@ import (
 	"valid/utils"
 )
 
+const (
+	OriginalCautionStatus 	= true
+)
+
 type Carrier interface {}
 
+// 校验器
 type Valid struct {
 	Carrier			Carrier
 	CustomFunc 		map[string]func(fl validator.FieldLevel) bool
+	CustomMessage 	map[string]string
+	CautionStatus	bool
 }
 
 // 将校验器绑定到给定的宿主上
@@ -20,8 +27,10 @@ func NewValid(carrier interface{}) (*Valid, error) {
 	}
 	// 初始化校验器
 	v := &Valid{
-		Carrier:    carrier,
-		CustomFunc: CommonValidFunc(),
+		Carrier:       		carrier,
+		CustomFunc: 		CommonValidFunc(),
+		CustomMessage:		CommonErrorMessage(),
+		CautionStatus:		OriginalCautionStatus,
 	}
 	return v, nil
 }
@@ -37,18 +46,40 @@ func (v *Valid) Inject(data interface{}) *Valid {
 	return v
 }
 
-func (v *Valid) RegisterFunc(cf map[string]func(fl validator.FieldLevel) bool) *Valid {
-	for key, val := range cf {
+// 注册自定义的校验方法, 如果用户定义的tag原本已存在, 则用户自定义的会覆盖原本存在的
+func (v *Valid) RegisterValidFunc(rf map[string]func(fl validator.FieldLevel) bool) *Valid {
+	for key, val := range rf {
 		v.CustomFunc[key] = val
 	}
 	return v
 }
 
-func (v *Valid) Register()  {
-	
+// 注册自定义的校验错误显示, 如果用户定义的tag原本已存在, 则用户自定义的会覆盖原本存在的
+func (v *Valid) RegisterErrorMessage(rm map[string]string) *Valid {
+	for key, val := range rm {
+		v.CustomMessage[key] = val
+	}
+	return v
 }
 
-//func customFunc(fl validator.FieldLevel) bool {
-//
-//}
+// 关闭错误展示, 关闭错误展示后统一返回的错误信息为"非法请求参数"
+func (v *Valid) CloseCaution() *Valid {
+	v.CautionStatus = false
+	return v
+}
+
+func (v *Valid) Valid() error {
+	vd := validator.New()
+	// 如果存在CustomFunc, 则注册自定义校验
+	if v.CustomFunc != nil {
+		for tag, cf := range v.CustomFunc {
+			vd.RegisterValidation(tag, cf)
+		}
+	}
+	// 进行校验
+	if err := vd.Struct(v.Carrier); err != nil {
+		// TODO错误信息处理
+	}
+}
+
 

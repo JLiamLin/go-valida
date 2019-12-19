@@ -63,7 +63,11 @@ func main()  {
 		fmt.Printf("错误")
 	}
 	fmt.Printf("%+v\n", v)
-	//v.Inject(request).RegisterFunc()
+	//v.Inject(reuest).Registe
+	a := "标签"
+	b := ""
+	c := fmt.Sprintf("%s - ", a, b)
+	fmt.Println(c)
 }
 
 
